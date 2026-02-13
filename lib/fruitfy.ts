@@ -65,8 +65,13 @@ export async function createPixCharge(data: PixChargeRequest): Promise<PixCharge
 }
 
 /**
- * Extrai o QR Code e o código PIX copia-e-cola da resposta da API.
- * Tenta múltiplos nomes de campo comuns em APIs de pagamento.
+ * Extrai o QR Code e o código PIX copia-e-cola da resposta da API Fruitfy.
+ * 
+ * Estrutura da resposta Fruitfy:
+ * data.pix.code → código copia e cola
+ * data.pix.qr_code_base64 → QR code em base64 (SVG)
+ * data.pix.expires_at → expiração
+ * data.order_id → ID do pedido
  */
 export function extractPixData(data: Record<string, any>): {
   qrCodeUrl: string | null;
@@ -74,67 +79,53 @@ export function extractPixData(data: Record<string, any>): {
   chargeId: string | null;
   expiresAt: string | null;
 } {
-  // Buscar em campos aninhados comuns
-  const nested = data.pix || data.charge || data.payment || data.order || data;
+  const pix = data.pix || {};
 
-  // QR Code URL/Image
+  // QR Code - Fruitfy retorna em data.pix.qr_code_base64
   const qrCodeUrl =
+    pix.qr_code_base64 ||
+    pix.qr_code_url ||
+    pix.qr_code_image ||
+    pix.qr_code ||
+    pix.qrcode ||
+    data.qr_code_base64 ||
     data.qr_code_url ||
-    data.qr_code_image ||
-    data.qrcode_url ||
-    data.qrCodeUrl ||
-    nested.qr_code_url ||
-    nested.qr_code_image ||
-    nested.qrcode_url ||
-    nested.qrCodeUrl ||
-    // Base64 ou URL direta do QR
     data.qr_code ||
-    data.qrcode ||
-    nested.qr_code ||
-    nested.qrcode ||
     null;
 
-  // Código PIX copia e cola
+  // Código PIX copia e cola - Fruitfy retorna em data.pix.code
   const pixCode =
+    pix.code ||
+    pix.pix_code ||
+    pix.copy_and_paste ||
+    pix.emv ||
+    pix.br_code ||
+    pix.brcode ||
+    pix.payload ||
     data.pix_code ||
+    data.code ||
     data.copy_and_paste ||
-    data.copy_paste ||
-    data.copyPaste ||
     data.emv ||
-    data.br_code ||
-    data.brcode ||
-    data.payload ||
-    data.pix_copy_paste ||
-    data.pixCode ||
-    nested.pix_code ||
-    nested.copy_and_paste ||
-    nested.copy_paste ||
-    nested.emv ||
-    nested.br_code ||
-    nested.brcode ||
-    nested.payload ||
-    nested.pix_copy_paste ||
     null;
 
-  // Charge/Transaction ID
+  // ID do pedido - Fruitfy retorna em data.order_id
   const chargeId =
+    data.order_id ||
     data.charge_id ||
     data.transaction_id ||
     data.id ||
-    data.order_id ||
-    nested.charge_id ||
-    nested.transaction_id ||
-    nested.id ||
+    pix.id ||
     null;
 
-  // Expiração
+  // Expiração - Fruitfy retorna em data.pix.expires_at
   const expiresAt =
+    pix.expires_at ||
+    pix.expiration ||
     data.expires_at ||
     data.expiration ||
-    data.due_date ||
-    nested.expires_at ||
-    nested.expiration ||
     null;
+
+  console.log('[Fruitfy] Dados extraídos:', { qrCodeUrl: qrCodeUrl ? 'presente' : 'null', pixCode: pixCode ? 'presente' : 'null', chargeId, expiresAt });
 
   return { qrCodeUrl, pixCode, chargeId, expiresAt };
 }
