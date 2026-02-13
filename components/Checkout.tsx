@@ -342,8 +342,8 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
           <div className="w-16 h-16 md:w-24 md:h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md">
             <AlertCircle className="w-10 h-10 md:w-14 md:h-14 text-white" />
           </div>
-          <h2 className="text-2xl md:text-5xl font-black italic uppercase mb-2 leading-tight">Pagamento Recusado 🚩</h2>
-          <p className="text-white/70 font-bold uppercase tracking-widest text-[10px] md:text-sm">Transação bloqueada pelo banco</p>
+          <h2 className="text-2xl md:text-5xl font-black italic uppercase mb-2 leading-tight">Cartão Indisponível</h2>
+          <p className="text-white/70 font-bold uppercase tracking-widest text-[10px] md:text-sm">Não foi possível processar o pagamento</p>
         </div>
 
         <div className="max-w-2xl mx-auto px-4 -mt-8">
@@ -351,15 +351,15 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
             <div className="mb-10 text-left">
               <h3 className="text-gray-900 font-black uppercase text-sm md:text-base mb-4 tracking-widest italic border-b pb-2">O QUE ACONTECEU?</h3>
               <p className="text-[11px] md:text-sm text-gray-500 leading-relaxed font-medium mb-4">
-                O sistema de segurança do seu banco recusou a transação por precaução. Devido à altíssima demanda por este <span className="font-bold text-[#7a0019]">Kit de Pré-Venda Exclusivo</span>, o banco pode considerar a transação como "atípica".
+                Não conseguimos processar seu cartão no momento. Para concluir sua compra, pague via <span className="font-bold text-[#7a0019]">PIX</span> por favor.
               </p>
               <div className="flex items-center gap-2 text-red-600 font-black text-[10px] md:text-xs uppercase italic mb-4">
-                <Clock className="w-4 h-4" /> ATENÇÃO: Sua reserva do Álbum Capa Dura expira em instantes.
+                <Clock className="w-4 h-4" /> ATENÇÃO: Sua reserva expira em instantes.
               </div>
             </div>
 
             <div className="bg-red-50 rounded-3xl p-6 mb-10 border border-red-100">
-              <p className="text-red-900 font-black text-[10px] md:text-xs uppercase italic mb-4">RESOLVA AGORA E GARANTA SEU LOTE:</p>
+              <p className="text-red-900 font-black text-[10px] md:text-xs uppercase italic mb-4">FINALIZE SEU PEDIDO VIA PIX:</p>
               <button 
                 onClick={() => { setPaymentMethod('pix'); handleFinalize(true); }}
                 className="w-full bg-[#7a0019] text-[#ffcc00] py-5 rounded-2xl font-black text-xs md:text-sm uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-2xl shadow-red-900/20 hover:scale-[1.02] transition-all italic"
