@@ -438,7 +438,7 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
       </div>
 
       <button 
-        onClick={handleFinalize}
+        onClick={() => handleFinalize()}
         className="w-full bg-[#7a0019] hover:bg-[#9b1b1b] text-[#ffcc00] py-4 rounded-full font-black text-[10px] md:text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-2xl shadow-red-900/20 transition-all active:scale-[0.98] italic"
       >
         FINALIZAR COMPRA <ChevronRight className="w-5 h-5" />
