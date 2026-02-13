@@ -26,6 +26,41 @@ const SHIPPING_OPTIONS: ShippingOption[] = [
 
 type CheckoutStage = 'filling' | 'processing' | 'pix_success' | 'card_error';
 
+// --- Funções de máscara ---
+const maskCpf = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  return digits
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+};
+
+const maskPhone = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.replace(/(\d{0,2})/, '($1');
+  if (digits.length <= 7) return digits.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+  return digits.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3');
+};
+
+const maskCep = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  return digits.replace(/(\d{5})(\d{1,3})/, '$1-$2');
+};
+
+const maskCardNumber = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 16);
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+};
+
+const maskExpiry = (value: string): string => {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  return digits.replace(/(\d{2})(\d{1,2})/, '$1/$2');
+};
+
+const maskCvv = (value: string): string => {
+  return value.replace(/\D/g, '').slice(0, 4);
+};
+
 const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal }) => {
   const [stage, setStage] = useState<CheckoutStage>('filling');
   const [cep, setCep] = useState('');
@@ -49,6 +84,12 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
   const [formEmail, setFormEmail] = useState('');
   const [formCpf, setFormCpf] = useState('');
   const [formPhone, setFormPhone] = useState('');
+
+  // Campos do cartão
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
 
   // Dados do PIX retornados pela API Fruitfy
   const [pixData, setPixData] = useState<{
@@ -454,8 +495,8 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
               <div className="grid grid-cols-1 gap-3">
                 <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nome Completo" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input type="text" value={formCpf} onChange={(e) => setFormCpf(e.target.value)} placeholder="CPF (apenas números)" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
-                  <input type="tel" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="WhatsApp (DDD + Número)" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="text" value={formCpf} onChange={(e) => setFormCpf(maskCpf(e.target.value))} placeholder="000.000.000-00" maxLength={14} className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="tel" value={formPhone} onChange={(e) => setFormPhone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" maxLength={15} className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
                 </div>
                 <input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="E-mail para receber o rastreio" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
               </div>
@@ -468,7 +509,7 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <div className="relative">
-                  <input type="text" value={cep} onChange={(e) => setCep(e.target.value)} placeholder="CEP" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm" />
+                  <input type="text" value={cep} onChange={(e) => setCep(maskCep(e.target.value))} placeholder="00000-000" maxLength={9} className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm" />
                   {isCepLoading && <div className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin rounded-full h-3 w-3 border-2 border-[#7a0019] border-t-transparent" />}
                 </div>
                 <input type="text" readOnly value={address.logradouro} placeholder="Rua / Avenida" className="w-full px-5 py-3.5 bg-gray-100 border border-gray-200 rounded-2xl text-[11px] md:text-sm text-gray-500" />
@@ -529,10 +570,10 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
 
               {paymentMethod === 'card' && (
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-4">
-                  <input type="text" placeholder="Número do Cartão" className="col-span-2 w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
-                  <input type="text" placeholder="Nome Impresso" className="col-span-2 w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
-                  <input type="text" placeholder="Venc. (MM/AA)" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
-                  <input type="text" placeholder="CVV" className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="text" value={cardNumber} onChange={(e) => setCardNumber(maskCardNumber(e.target.value))} placeholder="0000 0000 0000 0000" maxLength={19} className="col-span-2 w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="text" value={cardName} onChange={(e) => setCardName(e.target.value.toUpperCase())} placeholder="Nome Impresso no Cartão" className="col-span-2 w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="text" value={cardExpiry} onChange={(e) => setCardExpiry(maskExpiry(e.target.value))} placeholder="MM/AA" maxLength={5} className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
+                  <input type="text" value={cardCvv} onChange={(e) => setCardCvv(maskCvv(e.target.value))} placeholder="CVV" maxLength={4} className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none" />
                   <div className="col-span-2">
                     <select className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-[11px] md:text-sm focus:ring-2 focus:ring-[#7a0019] outline-none appearance-none cursor-pointer">
                       <option value="1">1x de R$ {total.toFixed(2).replace('.', ',')} sem juros</option>
