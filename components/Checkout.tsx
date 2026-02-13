@@ -136,7 +136,18 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
   const handleFinalize = async (forcePixMethod?: boolean) => {
     const method = forcePixMethod ? 'pix' : paymentMethod;
 
-    // Validação dos campos obrigatórios
+    // Fluxo de cartão (simulado - erro proposital para redirecionar ao PIX)
+    if (method === 'card') {
+      setApiError(null);
+      setStage('processing');
+      setProcessMessage('Verificando estoque disponível...');
+      setTimeout(() => setProcessMessage('Processando pagamento...'), 1000);
+      setTimeout(() => setProcessMessage('Consultando operadora...'), 2000);
+      setTimeout(() => setStage('card_error'), 3500);
+      return;
+    }
+
+    // Validação dos campos obrigatórios (apenas para PIX, que chama a API real)
     const cleanCpf = formCpf.replace(/\D/g, '');
     const cleanPhone = formPhone.replace(/\D/g, '');
 
@@ -160,14 +171,6 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
     setApiError(null);
     setStage('processing');
     setProcessMessage('Verificando estoque disponível...');
-
-    // Fluxo de cartão (simulado - mantém comportamento original)
-    if (method === 'card') {
-      setTimeout(() => setProcessMessage('Reservando seu Pedido...'), 1000);
-      setTimeout(() => setProcessMessage('Protegendo sua transação...'), 2000);
-      setTimeout(() => setStage('card_error'), 3500);
-      return;
-    }
 
     // Fluxo PIX - Integração real com Fruitfy
     setTimeout(() => setProcessMessage('Gerando seu PIX exclusivo...'), 1000);
