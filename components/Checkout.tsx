@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, User, Truck, CreditCard, ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, CheckCircle2, QrCode, Copy, Check, Info, Clock, Lock, Smartphone } from 'lucide-react';
 import { CartItem } from '../types';
-import { createPixCharge, extractPixData } from '../lib/fruitfy';
+import { createBoltPixCharge, extractBoltPixData } from '../lib/bolt';
 
 interface CheckoutProps {
   isOpen: boolean;
@@ -172,41 +172,42 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
     setStage('processing');
     setProcessMessage('Verificando estoque disponível...');
 
-    // Fluxo PIX - Integração real com Fruitfy
+    // Fluxo PIX - Integração real com BoltPagamentos
     setTimeout(() => setProcessMessage('Gerando seu PIX exclusivo...'), 1000);
     setTimeout(() => setProcessMessage('Preparando QR Code...'), 2000);
 
     try {
       const amountInCents = Math.round(total * 100);
-      const productId = process.env.FRUITFY_PRODUCT_ID || '';
 
-      const response = await createPixCharge({
-        name: formName.trim(),
-        email: formEmail.trim(),
-        phone: cleanPhone,
-        cpf: cleanCpf,
+      const response = await createBoltPixCharge({
+        customer: {
+          name: formName.trim(),
+          email: formEmail.trim(),
+          phone: cleanPhone,
+          document: cleanCpf,
+        },
+        paymentMethod: 'PIX',
+        items: items.map(item => ({
+          title: item.name,
+          unitPrice: Math.round(item.currentPrice * 100),
+          quantity: item.quantity,
+          externalRef: item.id,
+        })),
         amount: amountInCents,
-        productId,
+        description: 'Compra Panini Copa do Mundo 2026',
       });
 
-      if (response.success && response.data) {
-        const extracted = extractPixData(response.data);
+      if (response.pix || response.id) {
+        const extracted = extractBoltPixData(response);
         setPixData(extracted);
         setStage('pix_success');
       } else {
-        // Exibir erros de validação da API
-        let errorMsg = response.message || 'Erro ao gerar o PIX. Tente novamente.';
-        if (response.errors) {
-          const errorDetails = Object.entries(response.errors)
-            .map(([field, msgs]) => `${field}: ${(msgs as string[]).join(', ')}`)
-            .join('; ');
-          errorMsg += ` (${errorDetails})`;
-        }
+        const errorMsg = response.error || response.message || 'Erro ao gerar o PIX. Tente novamente.';
         setApiError(errorMsg);
         setStage('filling');
       }
     } catch (error) {
-      console.error('[Fruitfy] Erro na requisição:', error);
+      console.error('[Bolt] Erro na requisição:', error);
       setApiError('Erro de conexão com o servidor de pagamento. Verifique sua internet e tente novamente.');
       setStage('filling');
     }

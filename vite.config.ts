@@ -20,6 +20,18 @@ export default defineConfig(({ mode }) => {
                 proxyReq.setHeader('Store-Id', env.FRUITFY_STORE_ID);
               });
             }
+          },
+          '/api/bolt': {
+            target: 'https://api.sistema.boltpagamentos.com',
+            changeOrigin: true,
+            secure: true,
+            rewrite: (p) => p.replace(/^\/api\/bolt/, '/functions/v1'),
+            configure: (proxy) => {
+              const credentials = Buffer.from(`${env.BOLT_SECRET_KEY}:${env.BOLT_COMPANY_ID}`).toString('base64');
+              proxy.on('proxyReq', (proxyReq) => {
+                proxyReq.setHeader('Authorization', `Basic ${credentials}`);
+              });
+            }
           }
         }
       },
