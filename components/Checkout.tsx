@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, User, Truck, CreditCard, ChevronLeft, ChevronRight, ShieldCheck, AlertCircle, CheckCircle2, QrCode, Copy, Check, Info, Clock, Lock, Smartphone } from 'lucide-react';
 import { CartItem } from '../types';
-import { createBoltPixCharge, extractBoltPixData } from '../lib/bolt';
+import { createPixCharge, extractPixData } from '../lib/fruitfy';
 
 interface CheckoutProps {
   isOpen: boolean;
@@ -172,42 +172,49 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
     setStage('processing');
     setProcessMessage('Verificando estoque disponível...');
 
-    // Fluxo PIX - Integração real com BoltPagamentos
+    // Fluxo PIX - Integração real com Fruitfy
     setTimeout(() => setProcessMessage('Gerando seu PIX exclusivo...'), 1000);
     setTimeout(() => setProcessMessage('Preparando QR Code...'), 2000);
 
     try {
+      const fruitfyProductId = process.env.FRUITFY_PRODUCT_ID;
+      if (!fruitfyProductId) {
+        setApiError('Configuração de pagamento incompleta. Defina FRUITFY_PRODUCT_ID.');
+        setStage('filling');
+        return;
+      }
+
       const amountInCents = Math.round(total * 100);
 
-      const response = await createBoltPixCharge({
-        customer: {
-          name: formName.trim(),
-          email: formEmail.trim(),
-          phone: cleanPhone,
-          document: cleanCpf,
-        },
-        paymentMethod: 'PIX',
-        items: items.map(item => ({
-          title: item.name,
-          unitPrice: Math.round(item.currentPrice * 100),
-          quantity: item.quantity,
-          externalRef: item.id,
-        })),
+      const response = await createPixCharge({
+        name: formName.trim(),
+        email: formEmail.trim(),
+        phone: cleanPhone,
+        cpf: cleanCpf,
         amount: amountInCents,
-        description: 'Compra Panini Copa do Mundo 2026',
+        productId: fruitfyProductId,
       });
 
-      if (response.pix || response.id) {
-        const extracted = extractBoltPixData(response);
+      if (response.success && response.data) {
+        const extracted = extractPixData(response.data);
+        if (!extracted.pixCode && !extracted.qrCodeUrl) {
+          setApiError('Pagamento criado, mas sem QR Code PIX na resposta. Tente novamente.');
+          setStage('filling');
+          return;
+        }
         setPixData(extracted);
         setStage('pix_success');
       } else {
-        const errorMsg = response.error || response.message || 'Erro ao gerar o PIX. Tente novamente.';
+        const firstValidationError =
+          response.errors && Object.values(response.errors).length > 0
+            ? Object.values(response.errors)[0]?.[0]
+            : null;
+        const errorMsg = firstValidationError || response.message || 'Erro ao gerar o PIX. Tente novamente.';
         setApiError(errorMsg);
         setStage('filling');
       }
     } catch (error) {
-      console.error('[Bolt] Erro na requisição:', error);
+      console.error('[Fruitfy] Erro na requisição:', error);
       setApiError('Erro de conexão com o servidor de pagamento. Verifique sua internet e tente novamente.');
       setStage('filling');
     }
@@ -243,8 +250,13 @@ const Checkout: React.FC<CheckoutProps> = ({ isOpen, onClose, items, subtotal })
 
   if (stage === 'pix_success') {
     // Determinar URL do QR Code: se a API retornou uma URL, usar. Senão, gerar a partir do código PIX.
+    const normalizedQrCodeUrl =
+      pixData?.qrCodeUrl && !pixData.qrCodeUrl.startsWith('http') && !pixData.qrCodeUrl.startsWith('data:')
+        ? `data:image/svg+xml;base64,${pixData.qrCodeUrl}`
+        : pixData?.qrCodeUrl || null;
+
     const qrImageUrl = pixData?.qrCodeUrl
-      ? pixData.qrCodeUrl
+      ? normalizedQrCodeUrl
       : pixData?.pixCode
         ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(pixData.pixCode)}`
         : null;
